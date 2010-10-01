@@ -45,7 +45,7 @@ class phpMalCodeScan {
 	
 	function check($contents,$file) {
 		$this->scanned_files = $file;
-		if(preg_match('/eval\(base64/i',$contents)) {
+		if(preg_match('/eval\(base64/i',$contents) || preg_match('/eval\(base64/i',$contents)) {
 			$this->infected_files[] = $file;
 		}
 	}
