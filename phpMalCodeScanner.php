@@ -3,7 +3,7 @@
 Plugin Name: php Malicious Code Scanner
 Plugin URI: http://www.mikestowe.com/phpmalcode
 Description: The php Malicious Code Scanner checks all files for one of the most common malicious code attacks, the eval( base64_decode() ) attack...
-Version: 1.0 alpha
+Version: 1.1 alpha
 Author: Michael Stowe
 Author URI: http://www.mikestowe.com
 Credits: Based on the idea of Er. Rochak Chauhan (http://www.rochakchauhan.com/), rewritten for use with a cron job
