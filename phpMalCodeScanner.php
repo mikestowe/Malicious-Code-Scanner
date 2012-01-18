@@ -25,7 +25,7 @@ class phpMalCodeScan {
 	
 	
 	function __construct() {
-		$this->scan(getcwd());
+		$this->scan(__DIR__);
 		$this->sendalert();
 	}
 	
@@ -33,6 +33,11 @@ class phpMalCodeScan {
 	function scan($dir) {
 		$this->scanned_files = $dir;
 		$files = scandir($dir);
+		
+		if(!is_array($files)) {
+			throw new Exception('Unable to scan directory ' . $dir . '.  Please make sure proper permissions have been set.');
+		}
+		
 		foreach($files as $file) {
 			if(is_file($dir.'/'.$file) && !in_array($dir.'/'.$file,$this->scanned_files)) {
 				$this->check(file_get_contents($dir.'/'.$file),$dir.'/'.$file);
