@@ -73,6 +73,8 @@ class phpMalCodeScan {
 
 ############################################ INITIATE CLASS
 
+ini_set('memory_limit', '-1'); ## Avoid memory errors (i.e in foreachloop)
+
 new phpMalCodeScan;
 
 
