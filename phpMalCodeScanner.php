@@ -8,12 +8,15 @@ Author: Michael Stowe
 Author URI: http://www.mikestowe.com
 Credits: Based on the idea of Er. Rochak Chauhan (http://www.rochakchauhan.com/), rewritten for use with a cron job
 License: GPL-2
+
+Modified on  May 11 2015 
+Added exclude file list 
 */
 
 
-// Set to your email:
-define('SEND_EMAIL_ALERTS_TO','youremail@example.com');
-
+// Set to your email, and exclude files path:
+define('SEND_EMAIL_ALERTS_TO','contact@mail.com');
+define('EXCLUDE', '/var/www/html/whitelist');
 
 ############################################ START CLASS
 
@@ -22,13 +25,19 @@ class phpMalCodeScan {
 
 	public $infected_files = array();
 	private $scanned_files = array();
-	
-	
+	public $excluded_files = array();	
+		
 	function __construct() {
+		$this->readexclude(EXCLUDE);
+
 		$this->scan(dirname(__FILE__));
 		$this->sendalert();
 	}
 	
+	function readexclude($excludefile) {
+		$tmp_array = file($excludefile);
+		$this->excluded_files = array_map('trim',$tmp_array);
+	}
 	
 	function scan($dir) {
 		$this->scanned_files[] = $dir;
@@ -37,9 +46,8 @@ class phpMalCodeScan {
 		if(!is_array($files)) {
 			throw new Exception('Unable to scan directory ' . $dir . '.  Please make sure proper permissions have been set.');
 		}
-		
 		foreach($files as $file) {
-			if(is_file($dir.'/'.$file) && !in_array($dir.'/'.$file,$this->scanned_files)) {
+			if(is_file($dir.'/'.$file) && !in_array($dir.'/'.$file,$this->scanned_files) && !in_array($dir.'/'.$file,$this->excluded_files)) {
 				$this->check(file_get_contents($dir.'/'.$file),$dir.'/'.$file);
 			} elseif(is_dir($dir.'/'.$file) && substr($file,0,1) != '.') {
 				$this->scan($dir.'/'.$file);
@@ -58,12 +66,28 @@ class phpMalCodeScan {
 
 	function sendalert() {
 		if(count($this->infected_files) != 0) {
-			$message = "== MALICIOUS CODE FOUND == \n\n";
+			$hostname = php_uname('n');
+			$message = "== MALICIOUS CODE FOUND ON $hostname == \n\n";
 			$message .= "The following files appear to be infected: \n";
 			foreach($this->infected_files as $inf) {
 				$message .= "  -  $inf \n";
 			}
-			mail(SEND_EMAIL_ALERTS_TO,'Malicious Code Found!',$message,'FROM:');
+			$message .= "\nThe following files have been excluded from check: \n";
+			foreach($this->excluded_files as $inf) {
+				$message .= "  -  $inf \n";
+			}
+			mail(SEND_EMAIL_ALERTS_TO," $hostname  --  Malicious Code Found!",$message,'FROM:');
+		}
+		else{
+			$hostname = php_uname('n');
+			$message = "== CODE CLEAN ON $hostname == \n\n";
+
+			$message .= "The following files have been excluded from check: \n";
+			foreach($this->excluded_files as $inf) {
+                                $message .= "  -  $inf \n";
+                        }
+
+			mail(SEND_EMAIL_ALERTS_TO," $hostname  --  Code clean!",$message,'FROM:');
 		}
 	}
 
