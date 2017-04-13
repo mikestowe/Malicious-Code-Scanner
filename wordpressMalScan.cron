@@ -1,0 +1,2 @@
+#!/bin/sh
+php /var/www/html/phpMalCodeScanner.php
