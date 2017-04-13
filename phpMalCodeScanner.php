@@ -50,7 +50,7 @@ class phpMalCodeScan {
 	
 	function check($contents,$file) {
 		$this->scanned_files[] = $file;
-		if(preg_match('/eval\((base64|eval|\$_|\$\$|\$[A-Za-z_0-9\{]*(\(|\{|\[))/i',$contents)) {
+		if(preg_match('/(eval\((base64|eval|\$_|\$\$|\$[A-Za-z_0-9\{]*(\(|\{|\[)))|(\$_COOKIE\[['"a-z0-9_]+\]\()/i',$contents)) {
 			$this->infected_files[] = $file;
 		}
 	}
