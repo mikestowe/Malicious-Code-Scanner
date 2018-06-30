@@ -27,6 +27,8 @@ define('DETECT_LONG_LINES', false);
 define('LONG_LINE_THRESHOLD', 350);
 // Indicate which files to match (this prevents checking of image files, PDFs etc)
 define('FILES_TO_MATCH', '#\.(php|php4|php5|phtml|html|htaccess)#');
+// Ignore symlinked folders
+define('IGNORE_LINK', true);
 // Set to true to check some Wordpress specific stuff
 define('WORDPRESS', true);
 
@@ -106,6 +108,9 @@ class PhpMalCodeScan
                 }
                 $this->check(file_get_contents($dir . '/' . $file), $dir . '/' . $file);
             } elseif (is_dir($dir . '/' . $file) && substr($file, 0, 1) != '.') {
+                if (IGNORE_LINK && is_link($dir . '/' . $file)) {
+                    continue;
+                }
                 $this->scan($dir . '/' . $file);
             }
         }
