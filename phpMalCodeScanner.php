@@ -37,6 +37,15 @@ class PhpMalCodeScan
     public $infected_files = array();
     public $scanned_dir = '';
     private $scanned_files = array();
+    private $scan_patterns = array(
+        '/if\(isset\($_GET\[[a-z][0-9][0-9]+/i',
+        '/eval\(base64/i',
+        '/eval\(\$./i',
+        '/[ue\"\'];\$/',
+        '/;@ini/i',
+        '/((?<![a-z0-9_])eval\((base64|eval|\$_|\$\$|\$[A-Za-z_0-9\{]*(\(|\{|\[)))|(\$_COOKIE\[[\'"a-z0-9_]+\]\()/i',
+        '/(\\x[a-z0-9]{1,3}\\x[a-z0-9]{1,3})|(chr\([0-9]{1,3}\)\.chr\([0-9]{1,3}\))/i'
+    );
 
     public function __construct()
     {
@@ -105,17 +114,21 @@ class PhpMalCodeScan
     private function check($contents, $file)
     {
         $this->scanned_files[] = $file;
-        if (preg_match('/((?<![a-z0-9_])eval\((base64|eval|\$_|\$\$|\$[A-Za-z_0-9\{]*(\(|\{|\[)))|(\$_COOKIE\[[\'"a-z0-9_]+\]\()|(\\x[a-z0-9]{1,3}\\x[a-z0-9]{1,3})|(chr\([0-9]{1,3}\)\.chr\([0-9]{1,3}\))/i', $contents)) {
-        //$this->infected_files[] = $file;
-            $this->infected_files[] = $file . "\n" . str_pad('base64/eval found', 30, ' ', STR_PAD_LEFT) . "\n";
-            return true;
+        foreach ($this->scan_patterns as $pattern) {
+            if (preg_match($pattern, $contents)) {
+                if ($file !== __FILE__) {
+                    $this->infected_files[] = array('file' => $file, 'pattern_matched' => $pattern);
+                    break;
+                }
+            }
         }
+
         if (WORDPRESS) {
             $filename = basename($file);
             if (($filename === 'wp-config.php' || $filename === 'settings.php' || $filename === 'index.php') &&
             preg_match('/@include|#@/', $contents)) {
-                $this->infected_files[] = $file . "\n" .
-                str_pad('possibly infected WP file found', 30, ' ', STR_PAD_LEFT) . "\n";
+                $this->infected_files[] = array('file' => $file,
+                'pattern_matched' => 'possibly infected WP file');
                 return true;
             }
         }
@@ -156,7 +169,7 @@ class PhpMalCodeScan
             $message .= "The following " . count($this->infected_files) . " files appear to be infected: " .
             $line_ending . $line_ending;
             foreach ($this->infected_files as $inf) {
-                $message .= "$inf" . $line_ending;
+                $message .= "  -  ".$inf['file'] ." [".$inf['pattern_matched']."]\n";
             }
             if (DISPLAY_RESULTS) {
                 print $line_ending . "$message";
