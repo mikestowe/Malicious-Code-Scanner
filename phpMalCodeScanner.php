@@ -27,6 +27,8 @@ define('DETECT_LONG_LINES', false);
 define('LONG_LINE_THRESHOLD', 350);
 // Indicate which files to match (this prevents checking of image files, PDFs etc)
 define('FILES_TO_MATCH', '#\.(php|php4|php5|phtml|html|htaccess)#');
+// Set to true to check some Wordpress specific stuff
+define('WORDPRESS', true);
 
 ############################################ START CLASS
 
@@ -37,8 +39,37 @@ class PhpMalCodeScan
 
     public function __construct()
     {
-        $this->scan(dirname(__FILE__));
+        if (!$this->isCommandLineInterface()) {
+            // Get list of files & directories up one level
+            $dirs = scandir(dirname(__FILE__) . '/..');
+            ?>
+            <form name='dirselectform' action='phpMalCodeScanner.php' method='POST'>
+            <select name='dirselect'>
+            <?php
+            foreach ($dirs as $dir) {
+                echo dirname(__FILE__) . '/../' . $dir;
+                if (is_dir(dirname(__FILE__) . '/../') . $dir) {
+                    ?>
+                    <option value="<?php echo $dir ?>"><?php echo $dir ?></option>
+                    <?php
+                }
+            } ?>
+            </select>
+            <input type='submit'>
+            </form><?php
+
+            if (isset($_POST['dirselect'])) {
+                $dir = '/../' . $_POST['dirselect'];
+            }
+        }
+
+        $this->scan(dirname(__FILE__) . ($dir ?? ''));
         $this->sendalert();
+    }
+
+    private function isCommandLineInterface()
+    {
+        return (php_sapi_name() === 'cli');
     }
 
     private function scan($dir)
@@ -72,6 +103,15 @@ class PhpMalCodeScan
             $this->infected_files[] = $file . "\n" . str_pad('base64/eval found', 30, ' ', STR_PAD_LEFT) . "\n";
             return true;
         }
+        if (WORDPRESS) {
+            $filename = basename($file);
+            if ($filename === 'wp-config.php' || $filename === 'settings.php' || $filename === 'index.php' &&
+            preg_match('/@include|#@/', $contents)) {
+                $this->infected_files[] = $file . "\n" .
+                str_pad('possibly infected WP file found', 30, ' ', STR_PAD_LEFT) . "\n";
+                return true;
+            }
+        }
         //  If checking for long lines is not enabled, leave the function now
         if (!DETECT_LONG_LINES) {
             return false;
@@ -102,9 +142,9 @@ class PhpMalCodeScan
     {
         if (count($this->infected_files) != 0) {
             $message = "== MALICIOUS CODE FOUND == \n\n";
-            $message .= "The following " . count($this->infected_files) . " files appear to be infected: \n\n\n";
+            $message .= "The following " . count($this->infected_files) . " files appear to be infected: \n\n\n<br>";
             foreach ($this->infected_files as $inf) {
-                $message .= "$inf \n";
+                $message .= "$inf \n<br>";
             }
             if (DISPLAY_RESULTS) {
                 print "\n$message";
