@@ -40,6 +40,7 @@ class PhpMalCodeScan
 
     public function __construct()
     {
+        $do_scan = true;
         if (!$this->isCommandLineInterface()) {
             // Get list of files & directories up one level
             $dirs = scandir(dirname(__FILE__) . '/..');
@@ -59,14 +60,18 @@ class PhpMalCodeScan
             <input type='submit'>
             </form><?php
 
+            $do_scan = false;
             if (isset($_POST['dirselect'])) {
                 $dir = '/../' . $_POST['dirselect'];
                 $this->$scanned_dir = $dir;
+                $do_scan = true;
             }
         }
 
-        $this->scan(dirname(__FILE__) . ($dir ?? ''));
-        $this->sendalert();
+        if ($do_scan) {
+            $this->scan(dirname(__FILE__) . ($dir ?? ''));
+            $this->sendalert();
+        }
     }
 
     private function isCommandLineInterface()
