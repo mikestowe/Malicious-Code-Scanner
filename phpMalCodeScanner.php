@@ -35,6 +35,7 @@ define('WORDPRESS', true);
 class PhpMalCodeScan
 {
     public $infected_files = array();
+    public $scanned_dir = '';
     private $scanned_files = array();
 
     public function __construct()
@@ -60,6 +61,7 @@ class PhpMalCodeScan
 
             if (isset($_POST['dirselect'])) {
                 $dir = '/../' . $_POST['dirselect'];
+                $this->$scanned_dir = $dir;
             }
         }
 
@@ -105,7 +107,7 @@ class PhpMalCodeScan
         }
         if (WORDPRESS) {
             $filename = basename($file);
-            if ($filename === 'wp-config.php' || $filename === 'settings.php' || $filename === 'index.php' &&
+            if (($filename === 'wp-config.php' || $filename === 'settings.php' || $filename === 'index.php') &&
             preg_match('/@include|#@/', $contents)) {
                 $this->infected_files[] = $file . "\n" .
                 str_pad('possibly infected WP file found', 30, ' ', STR_PAD_LEFT) . "\n";
@@ -140,20 +142,25 @@ class PhpMalCodeScan
 
     private function sendalert()
     {
+        $line_ending = '<br>';
+        if ($this->isCommandLineInterface()) {
+            $line_ending = "\n";
+        }
         if (count($this->infected_files) != 0) {
             $message = "== MALICIOUS CODE FOUND == \n\n";
-            $message .= "The following " . count($this->infected_files) . " files appear to be infected: \n\n\n<br>";
+            $message .= "The following " . count($this->infected_files) . " files appear to be infected: " .
+            $line_ending . $line_ending;
             foreach ($this->infected_files as $inf) {
-                $message .= "$inf \n<br>";
+                $message .= "$inf" . $line_ending;
             }
             if (DISPLAY_RESULTS) {
-                print "\n$message";
+                print $line_ending . "$message";
             }
             if (SEND_EMAIL) {
                 mail(SEND_EMAIL_ALERTS_TO, 'Malicious Code Found!', $message, 'FROM:');
             }
         } else {
-            print 'No infected files found';
+            print 'No infected files found in ' . $this->$scanned_dir;
         }
     }
 }
