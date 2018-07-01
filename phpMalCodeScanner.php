@@ -44,11 +44,13 @@ class PhpMalCodeScan
     private $scan_patterns = array(
         '/if\(isset\($_GET\[[a-z][0-9][0-9]+/i',
         '/eval\(base64/i',
-        '/eval\(\$./i',
-        '/[ue\"\'];\$/',
-        '/;@ini/i',
-        '/((?<![a-z0-9_])eval\((base64|eval|\$_|\$\$|\$[A-Za-z_0-9\{]*(\(|\{|\[)))|(\$_COOKIE\[[\'"a-z0-9_]+\]\()/i',
-        '/(\\x[a-z0-9]{1,3}\\x[a-z0-9]{1,3})|(chr\([0-9]{1,3}\)\.chr\([0-9]{1,3}\))/i'
+       '/eval\(\$./i',
+       '/[ue\"\'];\$/',
+       '/;@ini/i',
+       '/((?<![a-z0-9_])eval\((base64|eval|\$_|\$\$|\$[A-Za-z_0-9\{]*(\(|\{|\[)))|(\$_COOKIE\[[\'"a-z0-9_]+\]\()/i',
+       '/(\\x[a-z0-9]{1,3}\\x[a-z0-9]{1,3})|(chr\([0-9]{1,3}\)\.chr\([0-9]{1,3}\))/i',
+        '/\) \% 3;if \(/',
+        '/=\$GLOBALS;\${"\\\/'
     );
 
     public function __construct()
@@ -135,7 +137,8 @@ class PhpMalCodeScan
             }
         }
         if (!empty($patterns)) {
-            $this->infected_files[] = array('file' => $file, 'patterns_matched' => highlight_string($patterns, true));
+            $this->infected_files[] = array('file' => $file, 'patterns_matched' =>
+            $this->isCommandLineInterface() ? $patterns : highlight_string($patterns, true));
         }
 
         if (WORDPRESS) {
