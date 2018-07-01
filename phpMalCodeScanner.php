@@ -131,7 +131,7 @@ class PhpMalCodeScan
         if (WORDPRESS) {
             $filename = basename($file);
             if (($filename === 'wp-config.php' || $filename === 'settings.php' || $filename === 'index.php') &&
-            preg_match('/@include|#@/', $contents)) {
+            preg_match('/@include ("|\')\\\|#s@/', $contents)) {
                 $this->infected_files[] = array('file' => $file,
                 'pattern_matched' => 'possibly infected WP file');
                 return true;
