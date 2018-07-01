@@ -31,6 +31,8 @@ define('FILES_TO_MATCH', '#\.(php|php4|php5|phtml|html|htaccess)#');
 define('IGNORE_LINK', true);
 // Set to true to check some Wordpress specific stuff
 define('WORDPRESS', true);
+// Password protect page
+define('PASSWORD', 'mysupersecretpassword');
 
 ############################################ START CLASS
 
@@ -53,10 +55,14 @@ class PhpMalCodeScan
     {
         $do_scan = true;
         if (!$this->isCommandLineInterface()) {
+            $pass = $_GET['pass'] ?? '';
+            if ($pass !== PASSWORD) {
+                die();
+            }
             // Get list of files & directories up one level
             $dirs = scandir(dirname(__FILE__) . '/..');
             ?>
-            <form name='dirselectform' action='phpMalCodeScanner.php' method='POST'>
+            <form name='dirselectform' action='phpMalCodeScanner.php?pass=<?php echo $pass ?>' method='POST'>
             <select name='dirselect'>
             <?php
             foreach ($dirs as $dir) {
@@ -118,14 +124,18 @@ class PhpMalCodeScan
 
     private function check($contents, $file)
     {
+        $line_ending = $this->lineEnding();
         $this->scanned_files[] = $file;
-        foreach ($this->scan_patterns as $pattern) {
+        $patterns = '';
+        foreach ($this->scan_patterns as $key => $pattern) {
             if (preg_match($pattern, $contents)) {
                 if ($file !== __FILE__) {
-                    $this->infected_files[] = array('file' => $file, 'pattern_matched' => $pattern);
-                    break;
+                    $patterns .= $pattern;
                 }
             }
+        }
+        if (!empty($patterns)) {
+            $this->infected_files[] = array('file' => $file, 'patterns_matched' => highlight_string($patterns, true));
         }
 
         if (WORDPRESS) {
@@ -133,7 +143,7 @@ class PhpMalCodeScan
             if (($filename === 'wp-config.php' || $filename === 'settings.php' || $filename === 'index.php') &&
             preg_match('/@include ("|\')\\\|#s@/', $contents)) {
                 $this->infected_files[] = array('file' => $file,
-                'pattern_matched' => 'possibly infected WP file');
+                'patterns_matched' => ' [possibly infected WP file]');
                 return true;
             }
         }
@@ -163,18 +173,24 @@ class PhpMalCodeScan
         return false;
     }
 
+
+    private function lineEnding()
+    {
+        if ($this->isCommandLineInterface()) {
+            return "\n";
+        }
+        return '<br>';
+    }
+
     private function sendalert()
     {
-        $line_ending = '<br>';
-        if ($this->isCommandLineInterface()) {
-            $line_ending = "\n";
-        }
+        $line_ending = $this->lineEnding();
         if (count($this->infected_files) != 0) {
             $message = "== MALICIOUS CODE FOUND == \n\n";
             $message .= "The following " . count($this->infected_files) . " files appear to be infected: " .
             $line_ending . $line_ending;
             foreach ($this->infected_files as $inf) {
-                $message .= "  -  ".$inf['file'] ." [".$inf['pattern_matched']."]\n";
+                $message .= $line_ending . "  -  " . $inf['file'] . $inf['patterns_matched'] . $line_ending;
             }
             if (DISPLAY_RESULTS) {
                 print $line_ending . "$message";
