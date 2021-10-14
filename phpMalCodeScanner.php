@@ -38,20 +38,20 @@ define('PASSWORD', 'mysupersecretpassword');
 
 class PhpMalCodeScan
 {
-    public $infected_files = array();
+    public $infected_files = [];
     public $scanned_dir = '';
-    private $scanned_files = array();
-    private $scan_patterns = array(
+    private $scanned_files = [];
+    private $scan_patterns = [
         '/if\(isset\($_GET\[[a-z][0-9][0-9]+/i',
         '/eval\(base64/i',
-       '/eval\(\$./i',
-       '/[ue\"\'];\$/',
-       '/;@ini/i',
-       '/((?<![a-z0-9_])eval\((base64|eval|\$_|\$\$|\$[A-Za-z_0-9\{]*(\(|\{|\[)))|(\$_COOKIE\[[\'"a-z0-9_]+\]\()/i',
-       '/(\\x[a-z0-9]{1,3}\\x[a-z0-9]{1,3})|(chr\([0-9]{1,3}\)\.chr\([0-9]{1,3}\))/i',
+        '/eval\(\$./i',
+        '/[ue\"\'];\$/',
+        '/;@ini/i',
+        '/((?<![a-z0-9_])eval\((base64|eval|\$_|\$\$|\$[A-Za-z_0-9\{]*(\(|\{|\[)))|(\$_COOKIE\[[\'"a-z0-9_]+\]\()/i',
+        '/(\\x[a-z0-9]{1,3}\\x[a-z0-9]{1,3})|(chr\([0-9]{1,3}\)\.chr\([0-9]{1,3}\))/i',
         '/\) \% 3;if \(/',
         '/=\$GLOBALS;\${"\\\/'
-    );
+    ];
 
     public function __construct()
     {
@@ -63,22 +63,23 @@ class PhpMalCodeScan
             }
             // Get list of files & directories up one level
             $dirs = scandir(dirname(__FILE__) . '/..');
-            ?>
+?>
             <form name='dirselectform' action='phpMalCodeScanner.php?pass=<?php echo $pass ?>' method='POST'>
-            <select name='dirselect'>
-            <?php
-            foreach ($dirs as $dir) {
-                echo dirname(__FILE__) . '/../' . $dir;
-                if (is_dir(dirname(__FILE__) . '/../') . $dir) {
-                    ?>
+                <select name='dirselect'>
+<?php
+                foreach ($dirs as $dir) {
+                    echo dirname(__FILE__) . '/../' . $dir;
+                    if (is_dir(dirname(__FILE__) . '/../') . $dir) {
+?>
                     <option value="<?php echo $dir ?>"><?php echo $dir ?></option>
-                    <?php
+<?php
+                    }
                 }
-            } ?>
-            </select>
-            <input type='submit'>
-            </form><?php
-
+?>
+                </select>
+                <input type='submit'>
+            </form>
+<?php
             $do_scan = false;
             if (isset($_POST['dirselect'])) {
                 $dir = '/../' . $_POST['dirselect'];
@@ -105,12 +106,14 @@ class PhpMalCodeScan
 
         if (!is_array($files)) {
             throw new Exception('Unable to scan directory ' . $dir . '.
-            Please make sure proper permissions have been set.');
+    Please make sure proper permissions have been set.');
         }
 
         foreach ($files as $file) {
-            if (is_file($dir . '/' . $file) && !in_array($dir . '/' . $file, $this->scanned_files) &&
-                preg_match(FILES_TO_MATCH, $file)) {
+            if (
+                is_file($dir . '/' . $file) && !in_array($dir . '/' . $file, $this->scanned_files) &&
+                preg_match(FILES_TO_MATCH, $file)
+            ) {
                 if (VERBOSE_OUTPUT) {
                     print "\nChecking file: $dir/$file";
                 }
@@ -137,16 +140,21 @@ class PhpMalCodeScan
             }
         }
         if (!empty($patterns)) {
-            $this->infected_files[] = array('file' => $file, 'patterns_matched' =>
-            $this->isCommandLineInterface() ? $patterns : highlight_string($patterns, true));
+            $this->infected_files[] = [
+                'file' => $file,
+                'patterns_matched' => $this->isCommandLineInterface() ? $patterns : highlight_string($patterns, true)
+            ];
         }
 
         if (WORDPRESS) {
             $filename = basename($file);
             if (($filename === 'wp-config.php' || $filename === 'settings.php' || $filename === 'index.php') &&
-            preg_match('/@include ("|\')\\\|#s@/', $contents)) {
-                $this->infected_files[] = array('file' => $file,
-                'patterns_matched' => ' [possibly infected WP file]');
+                preg_match('/@include ("|\')\\\|#s@/', $contents)
+            ) {
+                $this->infected_files[] = [
+                    'file' => $file,
+                    'patterns_matched' => ' [possibly infected WP file]'
+                ];
                 return true;
             }
         }
@@ -176,7 +184,6 @@ class PhpMalCodeScan
         return false;
     }
 
-
     private function lineEnding()
     {
         if ($this->isCommandLineInterface()) {
@@ -191,7 +198,7 @@ class PhpMalCodeScan
         if (count($this->infected_files) != 0) {
             $message = "== MALICIOUS CODE FOUND == \n\n";
             $message .= "The following " . count($this->infected_files) . " files appear to be infected: " .
-            $line_ending . $line_ending;
+                $line_ending . $line_ending;
             foreach ($this->infected_files as $inf) {
                 $message .= $line_ending . "  -  " . $inf['file'] . $inf['patterns_matched'] . $line_ending;
             }
